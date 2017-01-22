@@ -2,6 +2,7 @@ package jishoMainingu.rest;
 
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
@@ -14,8 +15,11 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import org.springframework.stereotype.Component;
 
 import jishoMainingu.backend.jisho.JishoAccess;
-import jishoMainingu.backend.jisho.model.ResultDto;
+import jishoMainingu.backend.jisho.model.DataDto;
 import jishoMainingu.function.excel.ExcelWriter;
+import jishoMainingu.function.logging.Logging;
+import jishoMainingu.function.specification.DataSpecification;
+import jishoMainingu.function.specification.SpecificationCalculator;
 
 @Component
 @Path("/")
@@ -25,6 +29,9 @@ public class JishoMaininguRs {
 	private JishoAccess jishoAccess;
 
 	@Inject
+	private SpecificationCalculator calculator;
+
+	@Inject
 	private ExcelWriter excelWriter;
 
 	@GET
@@ -32,9 +39,9 @@ public class JishoMaininguRs {
 		StringBuilder message = new StringBuilder();
 		message.append("<html>");
 		message.append("<body>");
-		message.append("Anzeige von JSON: <a target=\"_blank\" href=\"http://localhost:8080/json?keyword=keyword\">http://localhost:8080/json?keyword=keyword</a>");
+		message.append("Anzeige von JSON: <a target=\"_blank\" href=\"http://localhost:8080/json?keyword=jlpt-n3\">http://localhost:8080/json?keyword=jlpt-n3</a>");
 		message.append("<p/>");
-		message.append("Export nach Excel:  <a target=\"_blank\" href=\"http://localhost:8080/excel?keyword=keyword\">http://localhost:8080/excel?keyword=keyword</a>");
+		message.append("Export nach Excel:  <a target=\"_blank\" href=\"http://localhost:8080/excel?keyword=jlpt-n3\">http://localhost:8080/excel?keyword=jlpt-n3</a>");
 		message.append("<p/>");
 		message.append("<p/>");
 		message.append("Anstelle von keyword kannst du natürlich auch nach anderen Dingen suchen ...");
@@ -46,35 +53,34 @@ public class JishoMaininguRs {
 	@GET
 	@Path("json")
 	@Produces("application/json")
-	public ResultDto raw(@QueryParam("keyword") String keyword) {
+	public List<DataDto> raw(@QueryParam("keyword") String keyword) {
 		System.out.println(LocalDateTime.now() + " GET [raw] keyword=" + keyword);
 		System.out.println("    ask Jisho ...");
-		ResultDto result = jishoAccess.read(keyword);
+		List<DataDto> data = jishoAccess.read(keyword, new Logging());
 		System.out.println("    ask Jisho ...done");
 		System.out.println("    Return result");
-		return result;
+		return data;
 	}
 
 	@GET
 	@Path("excel")
 	@Produces("application/vnd.ms-excel")
 	public Response abc(@QueryParam("keyword") String keyword) {
-		System.out.println(LocalDateTime.now() + " GET [excel] keyword=" + keyword);
-		System.out.println("    ask Jisho ...");
-		ResultDto result = jishoAccess.read(keyword);
-		System.out.println("    ask Jisho ...done");
+
+		Logging logging = new Logging();
+
+		logging.createEntry(String.format(" GET [excel] keyword=%s", keyword));
+
+		List<DataDto> data = jishoAccess.read(keyword, logging);
+
+		DataSpecification specification = calculator.calculate(data, logging);
 
 		try {
-			System.out.println("    create Excel ...");
-			ByteArrayOutputStream outputStream = excelWriter.createWorkbook(keyword, result);
-			System.out.println("    create Excel ...done");
+			ByteArrayOutputStream outputStream = excelWriter.createWorkbook(keyword, data, specification, logging);
 
 			ResponseBuilder responseBuilder = Response.ok(outputStream.toByteArray());
 
-			responseBuilder.header("Content-Disposition", "inline; filename=jisho-translations-" + keyword + ".xls");
-
-			System.out.println("    Return result");
-			return responseBuilder.build();
+			return responseBuilder.header("Content-Disposition", "inline; filename=jisho-translations-" + keyword + ".xls").build();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
