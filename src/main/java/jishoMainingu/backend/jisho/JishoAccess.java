@@ -19,10 +19,11 @@ public class JishoAccess {
 	 * Die Methode geht solange die pages durch, bis keine Daten mehr zurückgeliefert werden.
 	 * 
 	 * @param keyword Nach diesem Begriff wird gesucht
+	 * @param maxPage Optionaler Parameter, gibt an, bis zu welcher Page maximal Daten geladen werden.
 	 * @param logging Technisches Logging-Objekt
 	 * @return Die abgefragten Daten
 	 */
-	public List<DataDto> read(String keyword, Logging logging) {
+	public List<DataDto> read(String keyword, Integer maxPage, Logging logging) {
 		RestTemplate restTemplate = new RestTemplate();
 
 		List<DataDto> data = new ArrayList<>();
@@ -39,7 +40,9 @@ public class JishoAccess {
 				ResultDto result = restTemplate.getForObject(uri, ResultDto.class);
 
 				data.addAll(result.getData());
-				finished = result.getData().isEmpty();
+				
+				finished |= result.getData().isEmpty();
+				finished |= maxPage != null && maxPage.intValue() < page;
 
 				logEntry.success();
 			}

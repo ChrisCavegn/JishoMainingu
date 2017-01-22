@@ -39,9 +39,14 @@ public class JishoMaininguRs {
 		StringBuilder message = new StringBuilder();
 		message.append("<html>");
 		message.append("<body>");
-		message.append("Anzeige von JSON: <a target=\"_blank\" href=\"http://localhost:8080/json?keyword=jlpt-n3\">http://localhost:8080/json?keyword=jlpt-n3</a>");
+		message.append(
+				"Anzeige von JSON: <a target=\"_blank\" href=\"http://localhost:8080/json?keyword=jlpt-n3\">http://localhost:8080/json?keyword=jlpt-n3</a>");
 		message.append("<p/>");
-		message.append("Export nach Excel:  <a target=\"_blank\" href=\"http://localhost:8080/excel?keyword=jlpt-n3\">http://localhost:8080/excel?keyword=jlpt-n3</a>");
+		message.append(
+				"Export nach Excel:  <a target=\"_blank\" href=\"http://localhost:8080/excel?keyword=jlpt-n3\">http://localhost:8080/excel?keyword=jlpt-n3</a>");
+		message.append("<p/>");
+		message.append(
+				"Export nach Excel:  <a target=\"_blank\" href=\"http://localhost:8080/excel?keyword=jlpt-n3&maxPage=2\">http://localhost:8080/excel?keyword=jlpt-n3&maxPage=2</a>");
 		message.append("<p/>");
 		message.append("<p/>");
 		message.append("Anstelle von keyword kannst du natürlich auch nach anderen Dingen suchen ...");
@@ -53,25 +58,24 @@ public class JishoMaininguRs {
 	@GET
 	@Path("json")
 	@Produces("application/json")
-	public List<DataDto> raw(@QueryParam("keyword") String keyword) {
-		System.out.println(LocalDateTime.now() + " GET [raw] keyword=" + keyword);
-		System.out.println("    ask Jisho ...");
-		List<DataDto> data = jishoAccess.read(keyword, new Logging());
-		System.out.println("    ask Jisho ...done");
-		System.out.println("    Return result");
+	public List<DataDto> raw(@QueryParam("keyword") String keyword, @QueryParam("maxPage") Integer maxPage) {
+		Logging logging = new Logging();
+		logging.createEntry(String.format(" GET [excel] keyword=%s", keyword));
+
+		List<DataDto> data = jishoAccess.read(keyword, maxPage, logging);
+
 		return data;
 	}
 
 	@GET
 	@Path("excel")
 	@Produces("application/vnd.ms-excel")
-	public Response abc(@QueryParam("keyword") String keyword) {
+	public Response abc(@QueryParam("keyword") String keyword, @QueryParam("maxPage") Integer maxPage) {
 
 		Logging logging = new Logging();
-
 		logging.createEntry(String.format(" GET [excel] keyword=%s", keyword));
 
-		List<DataDto> data = jishoAccess.read(keyword, logging);
+		List<DataDto> data = jishoAccess.read(keyword, maxPage, logging);
 
 		DataSpecification specification = calculator.calculate(data, logging);
 
@@ -80,9 +84,9 @@ public class JishoMaininguRs {
 
 			ResponseBuilder responseBuilder = Response.ok(outputStream.toByteArray());
 
-			return responseBuilder.header("Content-Disposition", "inline; filename=jisho-translations-" + keyword + ".xls").build();
-		}
-		catch (Exception e) {
+			return responseBuilder
+					.header("Content-Disposition", "inline; filename=jisho-translations-" + keyword + ".xls").build();
+		} catch (Exception e) {
 			e.printStackTrace();
 			return Response.serverError().build();
 		}
