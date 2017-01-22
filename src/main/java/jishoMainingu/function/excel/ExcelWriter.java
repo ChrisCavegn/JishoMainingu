@@ -55,9 +55,10 @@ public class ExcelWriter {
 	private ExcelSpecification getExcelSpecification(DataSpecification specification) {
 		int kanjiStart = 0;
 		int readingStart = kanjiStart + specification.getMaxKanjiCount();
-		int englishDefinitionStart = readingStart + specification.getMaxReadingCount();
+		int partsOfSpeechStart = readingStart + specification.getMaxReadingCount();
+		int englishDefinitionStart = partsOfSpeechStart + 1;
 		int multipleKanji = englishDefinitionStart + 3;
-		ExcelSpecification excelSpecification = new ExcelSpecification(kanjiStart, readingStart, englishDefinitionStart, multipleKanji);
+		ExcelSpecification excelSpecification = new ExcelSpecification(kanjiStart, readingStart, partsOfSpeechStart, englishDefinitionStart, multipleKanji);
 		return excelSpecification;
 	}
 
@@ -73,6 +74,8 @@ public class ExcelWriter {
 			addHeaderCell(i, "Reading " + readingIndex, workbook, headerRow);
 		}
 
+		addHeaderCell(excel.getPartsOfSpeech(), "Parts of speech", workbook, headerRow);
+		
 		for (int i = excel.getEnglishDefinitionStart(); i < excel.getMultipleKanji(); i++) {
 			int englishDefinitionIndex = i - excel.getEnglishDefinitionStart();
 			addHeaderCell(i, "English Definition " + englishDefinitionIndex, workbook, headerRow);
@@ -108,6 +111,16 @@ public class ExcelWriter {
 				}
 			}
 
+			// Add Parts of Speech
+			List<String> allPartsOfSpeech = new ArrayList<>();
+			for(SenseDto sense: data.getSenses()){
+				allPartsOfSpeech.addAll(sense.getParts_of_speech());
+			}
+			String partsOfSpeech = StringUtils.collectionToDelimitedString(allPartsOfSpeech, ", ");
+			Cell speechCell = row.createCell(excel.getPartsOfSpeech());
+			speechCell.setCellValue(partsOfSpeech);
+
+			
 			// Add Englisch Definitions
 			if (data.getSenses().size() > 0) {
 				SenseDto sense = data.getSenses().get(0);

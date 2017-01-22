@@ -6,6 +6,7 @@ import lombok.Value;
 public class ExcelSpecification {
 	private int kanjiStart;
 	private int readingStart;
+	private int partsOfSpeech;
 	private int englishDefinitionStart;
 	private int multipleKanji;
 }
