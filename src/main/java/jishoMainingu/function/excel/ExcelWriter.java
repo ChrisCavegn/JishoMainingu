@@ -15,9 +15,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.util.StringUtils;
 
-import jishoMainingu.backend.jisho.model.DataDto;
-import jishoMainingu.backend.jisho.model.JapaneseDto;
-import jishoMainingu.backend.jisho.model.SenseDto;
+import jishoMainingu.function.excel.model.ExcelEntry;
 import jishoMainingu.function.logging.LogEntry;
 import jishoMainingu.function.logging.Logging;
 import jishoMainingu.function.specification.DataSpecification;
@@ -29,20 +27,21 @@ public class ExcelWriter {
 	 * Erzeugt aus den übergebenen Daten ein Excel-File.
 	 * 
 	 * @param keyword Das Keyword, nach dem gesucht wurde.
-	 * @param allData Die zum Keyword ermittelten Daten
+	 * @param someEntries Die zum Keyword ermittelten Daten
 	 * @param specification Die Spezifikation der Daten (Anzahl Kanji, Reading)
 	 * @param logging Das Logging-Objekt
 	 * @return Ein OutputStream, welcher das Excel-File enthält
 	 * @throws Exception Wird im Fehlerfall geworfen
 	 */
-	public ByteArrayOutputStream createWorkbook(String keyword, List<DataDto> allData, DataSpecification specification, Logging logging) throws Exception {
+	public ByteArrayOutputStream createWorkbook(String keyword, List<ExcelEntry> someEntries,
+			DataSpecification specification, Logging logging) throws Exception {
 
 		HSSFWorkbook workbook = new HSSFWorkbook();
-		
+
 		LogEntry entry = logging.createEntry("Schreibe Excel");
-		createDataSheet(keyword, allData, specification, workbook);
+		createDataSheet(keyword, someEntries, specification, workbook);
 		entry.success();
-		
+
 		createLoggingSheet(logging, workbook);
 
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -56,25 +55,25 @@ public class ExcelWriter {
 	 * Erzeugt das Sheet, welches die abgefragten/aufbereiteten Daten enthält.
 	 * 
 	 * @param keyword Das Keyword, nach dem gesucht wurde.
-	 * @param allData Die zum Keyword ermittelten Daten
+	 * @param someEntries Die zum Keyword ermittelten Daten
 	 * @param specification Die Spezifikation der Daten (Anzahl Kanji, Reading)
 	 * @param workbook Das Excel-Workbook
 	 */
-	private void createDataSheet(String keyword, List<DataDto> allData, DataSpecification specification, HSSFWorkbook workbook) {
+	private void createDataSheet(String keyword, List<ExcelEntry> someEntries, DataSpecification specification,
+			HSSFWorkbook workbook) {
 		HSSFSheet sheet = workbook.createSheet("Suchbegriff " + keyword);
 
 		ExcelSpecification excel = getExcelSpecification(specification);
 
 		int rowNum = 0;
 		addHeader(excel, workbook, sheet, rowNum++);
-		addContent(excel, allData, sheet, rowNum);
+		addContent(excel, someEntries, sheet, rowNum);
 	}
 
 	/**
-	 * Die 'Spezifikation' des zu erzeugenden Excel-Files.
-	 * - Startposition der Kanji-Rows
-	 * - Startposition der Reading-Rows
-	 * ...
+	 * Die 'Spezifikation' des zu erzeugenden Excel-Files. 
+	 * - Startposition der Kanji-Rows 
+	 * - Startposition der Reading-Rows ...
 	 * 
 	 * @param specification Die Spezifikation der Daten
 	 * @return Die Spezifikation des zu erzeugenden Excel-Files
@@ -85,7 +84,10 @@ public class ExcelWriter {
 		int partsOfSpeechStart = readingStart + specification.getMaxReadingCount();
 		int englishDefinitionStart = partsOfSpeechStart + 1;
 		int multipleKanji = englishDefinitionStart + 3;
-		ExcelSpecification excelSpecification = new ExcelSpecification(kanjiStart, readingStart, partsOfSpeechStart, englishDefinitionStart, multipleKanji);
+		int multipleReading = multipleKanji + 1;
+
+		ExcelSpecification excelSpecification = new ExcelSpecification(kanjiStart, readingStart, partsOfSpeechStart,
+				englishDefinitionStart, multipleKanji, multipleReading);
 		return excelSpecification;
 	}
 
@@ -110,13 +112,15 @@ public class ExcelWriter {
 		}
 
 		addHeaderCell(excel.getPartsOfSpeech(), "Parts of speech", workbook, headerRow);
-		
+
 		for (int i = excel.getEnglishDefinitionStart(); i < excel.getMultipleKanji(); i++) {
 			int englishDefinitionIndex = i - excel.getEnglishDefinitionStart();
 			addHeaderCell(i, "English Definition " + englishDefinitionIndex, workbook, headerRow);
 		}
 
-		Cell lastCell = addHeaderCell(excel.getMultipleKanji(), "multiple_kanji", workbook, headerRow);
+		addHeaderCell(excel.getMultipleKanji(), "multiple_kanji", workbook, headerRow);
+
+		Cell lastCell = addHeaderCell(excel.getMultipleReading(), "multiple_reading", workbook, headerRow);
 		sheet.setAutoFilter(CellRangeAddress.valueOf("A1:" + lastCell.getAddress()));
 	}
 
@@ -128,74 +132,68 @@ public class ExcelWriter {
 	 * @param sheet Das Sheet, das die Daten enthalten wird
 	 * @param rowNum Position, an der Die Daten eingefügt werden soll
 	 */
-	private void addContent(ExcelSpecification excel, List<DataDto> allData, HSSFSheet sheet, int rowNum) {
-		for (DataDto data : allData) {
+	private void addContent(ExcelSpecification excel, List<ExcelEntry> someEntries, HSSFSheet sheet, int rowNum) {
+		for (ExcelEntry entry : someEntries) {
 			Row row = sheet.createRow(rowNum++);
 
 			// Add Kanji's
 			int kanjiIndex = excel.getKanjiStart();
-			for (JapaneseDto japanese : data.getJapanese()) {
-				if (!StringUtils.isEmpty(japanese.getWord())) {
-					Cell kanjiCell = row.createCell(kanjiIndex);
-					kanjiCell.setCellValue(japanese.getWord());
+			for (String kanji : entry.getKanjis()) {
+				Cell kanjiCell = row.createCell(kanjiIndex);
+				kanjiCell.setCellValue(kanji);
 
-					kanjiIndex++;
-				}
+				kanjiIndex++;
 			}
 
 			// Add Readings
 			int readingIndex = excel.getReadingStart();
-			for (JapaneseDto japanese : data.getJapanese()) {
-				if (!StringUtils.isEmpty(japanese.getReading())) {
-					Cell readingCell = row.createCell(readingIndex);
-					readingCell.setCellValue(japanese.getReading());
+			for (String reading : entry.getReadings()) {
+				Cell readingCell = row.createCell(readingIndex);
+				readingCell.setCellValue(reading);
 
-					readingIndex++;
-				}
+				readingIndex++;
 			}
 
 			// Add Parts of Speech
-			List<String> allPartsOfSpeech = new ArrayList<>();
-			for(SenseDto sense: data.getSenses()){
-				allPartsOfSpeech.addAll(sense.getParts_of_speech());
-			}
-			String partsOfSpeech = StringUtils.collectionToDelimitedString(allPartsOfSpeech, ", ");
+			String partsOfSpeech = StringUtils.collectionToDelimitedString(entry.getPartsOfSpeech(), ", ");
 			Cell speechCell = row.createCell(excel.getPartsOfSpeech());
 			speechCell.setCellValue(partsOfSpeech);
 
-			
 			// Add Englisch Definitions
-			if (data.getSenses().size() > 0) {
-				SenseDto sense = data.getSenses().get(0);
+			if (entry.getEnglishDefinitions().size() > 0) {
+				List<String> englishDefinitions = entry.getEnglishDefinitions().get(0);
 
 				Cell firstEnglishWordCell = row.createCell(excel.getEnglishDefinitionStart() + 0);
-				firstEnglishWordCell.setCellValue(sense.getEnglish_definitions().get(0));
+				firstEnglishWordCell.setCellValue(englishDefinitions.get(0));
 
 				/*
-				 * Falls das erste Sense-Objekt mehr als English-Definition enthält, werden die weiteren
-				 * English-Definitions als Komma-separierte Liste in die zweite English-Definitions-Zelle
-				 * geschrieben.
+				 * Falls das erste Sense-Objekt mehr als English-Definition
+				 * enthält, werden die weiteren English-Definitions als
+				 * Komma-separierte Liste in die zweite
+				 * English-Definitions-Zelle geschrieben.
 				 */
-				if (sense.getEnglish_definitions().size() > 1) {
-					List<String> englishDefinitionsWithoutFirst = new ArrayList<>(sense.getEnglish_definitions());
+				if (englishDefinitions.size() > 1) {
+					List<String> englishDefinitionsWithoutFirst = new ArrayList<>(englishDefinitions);
 					englishDefinitionsWithoutFirst.remove(0);
 
-					String englishWordList = StringUtils.collectionToDelimitedString(englishDefinitionsWithoutFirst, ", ");
+					String englishWordList = StringUtils.collectionToDelimitedString(englishDefinitionsWithoutFirst,
+							", ");
 					Cell secondEnglishWordCell = row.createCell(excel.getEnglishDefinitionStart() + 1);
 					secondEnglishWordCell.setCellValue(englishWordList);
 				}
 
 			}
 			/*
-			 * Falls mehr als ein Sense-Objekt vorhanden ist, werden die English-Definitions der weiteren Senses
-			 * Komma-separiert in die dritte English-Definitions-Zelle geschrieben. Die Senses werden dabei jeweils
-			 * mit einem Semikolon getrennt. 
+			 * Falls mehr als ein Sense-Objekt vorhanden ist, werden die
+			 * English-Definitions der weiteren Senses Komma-separiert in die
+			 * dritte English-Definitions-Zelle geschrieben. Die Senses werden
+			 * dabei jeweils mit einem Semikolon getrennt.
 			 */
-			if (data.getSenses().size() > 1) {
+			if (entry.getEnglishDefinitions().size() > 1) {
 				List<String> allEnglishDefinitions = new ArrayList<>();
-				for (int i = 1; i < data.getSenses().size(); i++) {
-					SenseDto sense = data.getSenses().get(i);
-					String englishDefinition = StringUtils.collectionToDelimitedString(sense.getEnglish_definitions(), ", ");
+				for (int i = 1; i < entry.getEnglishDefinitions().size(); i++) {
+					List<String> englishDefinitions = entry.getEnglishDefinitions().get(i);
+					String englishDefinition = StringUtils.collectionToDelimitedString(englishDefinitions, ", ");
 					allEnglishDefinitions.add(englishDefinition);
 				}
 				String englishWordList = StringUtils.collectionToDelimitedString(allEnglishDefinitions, "; ");
@@ -206,6 +204,10 @@ public class ExcelWriter {
 			// Multiple Kanji
 			Cell multipleKanjiCell = row.createCell(excel.getMultipleKanji());
 			multipleKanjiCell.setCellValue(kanjiIndex - excel.getKanjiStart() > 1 ? 1 : 0);
+
+			// Multiple Kanji
+			Cell multipleReadingCell = row.createCell(excel.getMultipleReading());
+			multipleReadingCell.setCellValue(entry.isDifferentReadings() ? 1 : 0);
 		}
 
 		// Auto-Resize aller Spalten.
@@ -219,7 +221,7 @@ public class ExcelWriter {
 	 * 
 	 * @param index Position, an der die Zelle hinzugefügt werden soll
 	 * @param title Inhalt der Zelle
-	 * @param workbook Das Workbook, wird zum Erzeugen von Schriftart und Zelle benötigt 
+	 * @param workbook Das Workbook, wird zum Erzeugen von Schriftart und Zelle benötigt
 	 * @param headerRow Die Header-Zeile
 	 * @return Die erzeugte Zelle
 	 */
@@ -252,8 +254,7 @@ public class ExcelWriter {
 		int durationPosition = endedAtPosition + 1;
 		int statusPosition = durationPosition + 1;
 		int detailPosition = statusPosition + 1;
-		
-		
+
 		Row headerRow = sheet.createRow(0);
 		addHeaderCell(startedAtPosition, "StartedAt", workbook, headerRow);
 		addHeaderCell(messagePosition, "Message", workbook, headerRow);

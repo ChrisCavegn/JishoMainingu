@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 import jishoMainingu.backend.jisho.JishoAccess;
 import jishoMainingu.backend.jisho.model.DataDto;
 import jishoMainingu.function.excel.ExcelWriter;
+import jishoMainingu.function.excel.ModelConverter;
+import jishoMainingu.function.excel.model.ExcelEntry;
 import jishoMainingu.function.filter.ContentFilter;
 import jishoMainingu.function.logging.Logging;
 import jishoMainingu.function.specification.DataSpecification;
@@ -34,6 +36,9 @@ public class JishoMaininguRs {
 
 	@Inject
 	private SpecificationCalculator calculator;
+
+	@Inject
+	private ModelConverter modelConverter;
 
 	@Inject
 	private ExcelWriter excelWriter;
@@ -97,8 +102,10 @@ public class JishoMaininguRs {
 
 		contentFilter.filter(data, filterEvilSources, logging);
 
+		List<ExcelEntry> excelData = modelConverter.convert(data);
+
 		try {
-			ByteArrayOutputStream outputStream = excelWriter.createWorkbook(keyword, data, specification, logging);
+			ByteArrayOutputStream outputStream = excelWriter.createWorkbook(keyword, excelData, specification, logging);
 
 			ResponseBuilder responseBuilder = Response.ok(outputStream.toByteArray());
 

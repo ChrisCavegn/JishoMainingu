@@ -9,4 +9,5 @@ public class ExcelSpecification {
 	private int partsOfSpeech;
 	private int englishDefinitionStart;
 	private int multipleKanji;
+	private int multipleReading;
 }
