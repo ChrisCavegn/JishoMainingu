@@ -25,12 +25,22 @@ import jishoMainingu.function.specification.DataSpecification;
 @Named
 public class ExcelWriter {
 
+	/**
+	 * Erzeugt aus den übergebenen Daten ein Excel-File.
+	 * 
+	 * @param keyword Das Keyword, nach dem gesucht wurde.
+	 * @param allData Die zum Keyword ermittelten Daten
+	 * @param specification Die Spezifikation der Daten (Anzahl Kanji, Reading)
+	 * @param logging Das Logging-Objekt
+	 * @return Ein OutputStream, welcher das Excel-File enthält
+	 * @throws Exception Wird im Fehlerfall geworfen
+	 */
 	public ByteArrayOutputStream createWorkbook(String keyword, List<DataDto> allData, DataSpecification specification, Logging logging) throws Exception {
 
 		HSSFWorkbook workbook = new HSSFWorkbook();
 		
 		LogEntry entry = logging.createEntry("Schreibe Excel");
-		createDataSheet(keyword, specification, allData, workbook);
+		createDataSheet(keyword, allData, specification, workbook);
 		entry.success();
 		
 		createLoggingSheet(logging, workbook);
@@ -42,16 +52,33 @@ public class ExcelWriter {
 		return outputStream;
 	}
 
-	private void createDataSheet(String keyword, DataSpecification specification, List<DataDto> allData, HSSFWorkbook workbook) {
+	/**
+	 * Erzeugt das Sheet, welches die abgefragten/aufbereiteten Daten enthält.
+	 * 
+	 * @param keyword Das Keyword, nach dem gesucht wurde.
+	 * @param allData Die zum Keyword ermittelten Daten
+	 * @param specification Die Spezifikation der Daten (Anzahl Kanji, Reading)
+	 * @param workbook Das Excel-Workbook
+	 */
+	private void createDataSheet(String keyword, List<DataDto> allData, DataSpecification specification, HSSFWorkbook workbook) {
 		HSSFSheet sheet = workbook.createSheet("Suchbegriff " + keyword);
 
 		ExcelSpecification excel = getExcelSpecification(specification);
 
 		int rowNum = 0;
 		addHeader(excel, workbook, sheet, rowNum++);
-		addContent(allData, excel, sheet, rowNum);
+		addContent(excel, allData, sheet, rowNum);
 	}
 
+	/**
+	 * Die 'Spezifikation' des zu erzeugenden Excel-Files.
+	 * - Startposition der Kanji-Rows
+	 * - Startposition der Reading-Rows
+	 * ...
+	 * 
+	 * @param specification Die Spezifikation der Daten
+	 * @return Die Spezifikation des zu erzeugenden Excel-Files
+	 */
 	private ExcelSpecification getExcelSpecification(DataSpecification specification) {
 		int kanjiStart = 0;
 		int readingStart = kanjiStart + specification.getMaxKanjiCount();
@@ -62,6 +89,14 @@ public class ExcelWriter {
 		return excelSpecification;
 	}
 
+	/**
+	 * Erzeugt den Header im Daten-Excel.
+	 * 
+	 * @param excel Die Spezifikation des Excel-Files
+	 * @param workbook Das Workbook
+	 * @param sheet Das Sheet, das die Daten enthalten wird
+	 * @param rowNum Position, an der der Header eingefügt werden soll
+	 */
 	private void addHeader(ExcelSpecification excel, HSSFWorkbook workbook, HSSFSheet sheet, int rowNum) {
 		Row headerRow = sheet.createRow(rowNum);
 
@@ -85,7 +120,15 @@ public class ExcelWriter {
 		sheet.setAutoFilter(CellRangeAddress.valueOf("A1:" + lastCell.getAddress()));
 	}
 
-	private void addContent(List<DataDto> allData, ExcelSpecification excel, HSSFSheet sheet, int rowNum) {
+	/**
+	 * Fügt dem Sheet die Daten hinzu.
+	 * 
+	 * @param excel Die Spezifikation des Excel-Files
+	 * @param workbook Das Workbook
+	 * @param sheet Das Sheet, das die Daten enthalten wird
+	 * @param rowNum Position, an der Die Daten eingefügt werden soll
+	 */
+	private void addContent(ExcelSpecification excel, List<DataDto> allData, HSSFSheet sheet, int rowNum) {
 		for (DataDto data : allData) {
 			Row row = sheet.createRow(rowNum++);
 
@@ -128,6 +171,11 @@ public class ExcelWriter {
 				Cell firstEnglishWordCell = row.createCell(excel.getEnglishDefinitionStart() + 0);
 				firstEnglishWordCell.setCellValue(sense.getEnglish_definitions().get(0));
 
+				/*
+				 * Falls das erste Sense-Objekt mehr als English-Definition enthält, werden die weiteren
+				 * English-Definitions als Komma-separierte Liste in die zweite English-Definitions-Zelle
+				 * geschrieben.
+				 */
 				if (sense.getEnglish_definitions().size() > 1) {
 					List<String> englishDefinitionsWithoutFirst = new ArrayList<>(sense.getEnglish_definitions());
 					englishDefinitionsWithoutFirst.remove(0);
@@ -138,13 +186,19 @@ public class ExcelWriter {
 				}
 
 			}
+			/*
+			 * Falls mehr als ein Sense-Objekt vorhanden ist, werden die English-Definitions der weiteren Senses
+			 * Komma-separiert in die dritte English-Definitions-Zelle geschrieben. Die Senses werden dabei jeweils
+			 * mit einem Semikolon getrennt. 
+			 */
 			if (data.getSenses().size() > 1) {
 				List<String> allEnglishDefinitions = new ArrayList<>();
 				for (int i = 1; i < data.getSenses().size(); i++) {
 					SenseDto sense = data.getSenses().get(i);
-					allEnglishDefinitions.addAll(sense.getEnglish_definitions());
+					String englishDefinition = StringUtils.collectionToDelimitedString(sense.getEnglish_definitions(), ", ");
+					allEnglishDefinitions.add(englishDefinition);
 				}
-				String englishWordList = StringUtils.collectionToDelimitedString(allEnglishDefinitions, ", ");
+				String englishWordList = StringUtils.collectionToDelimitedString(allEnglishDefinitions, "; ");
 				Cell thirdEnglishWordCell = row.createCell(excel.getEnglishDefinitionStart() + 2);
 				thirdEnglishWordCell.setCellValue(englishWordList);
 			}
@@ -154,11 +208,21 @@ public class ExcelWriter {
 			multipleKanjiCell.setCellValue(kanjiIndex - excel.getKanjiStart() > 1 ? 1 : 0);
 		}
 
+		// Auto-Resize aller Spalten.
 		for (int i = 0; i <= excel.getMultipleKanji(); i++) {
 			sheet.autoSizeColumn(i);
 		}
 	}
 
+	/**
+	 * Fügt der Header-Zeile eine einzelne Zelle hinzu.
+	 * 
+	 * @param index Position, an der die Zelle hinzugefügt werden soll
+	 * @param title Inhalt der Zelle
+	 * @param workbook Das Workbook, wird zum Erzeugen von Schriftart und Zelle benötigt 
+	 * @param headerRow Die Header-Zeile
+	 * @return Die erzeugte Zelle
+	 */
 	private Cell addHeaderCell(int index, String title, HSSFWorkbook workbook, Row headerRow) {
 		HSSFFont headerFont = workbook.createFont();
 		headerFont.setBold(true);
@@ -173,43 +237,57 @@ public class ExcelWriter {
 		return wordCell;
 	}
 
+	/**
+	 * Erzeugt das Sheet mit den Logging-Informationen
+	 * 
+	 * @param logging Das Logging-Objekt
+	 * @param workbook Das Workbook
+	 */
 	private void createLoggingSheet(Logging logging, HSSFWorkbook workbook) {
 		HSSFSheet sheet = workbook.createSheet("Logging");
 
+		int startedAtPosition = 0;
+		int messagePosition = startedAtPosition + 1;
+		int endedAtPosition = messagePosition + 1;
+		int durationPosition = endedAtPosition + 1;
+		int statusPosition = durationPosition + 1;
+		int detailPosition = statusPosition + 1;
+		
+		
 		Row headerRow = sheet.createRow(0);
-		addHeaderCell(0, "StartedAt", workbook, headerRow);
-		addHeaderCell(1, "Message", workbook, headerRow);
-		addHeaderCell(2, "EndedAt", workbook, headerRow);
-		addHeaderCell(3, "Duration", workbook, headerRow);
-		addHeaderCell(4, "Status", workbook, headerRow);
-		addHeaderCell(5, "Detail", workbook, headerRow);
+		addHeaderCell(startedAtPosition, "StartedAt", workbook, headerRow);
+		addHeaderCell(messagePosition, "Message", workbook, headerRow);
+		addHeaderCell(endedAtPosition, "EndedAt", workbook, headerRow);
+		addHeaderCell(durationPosition, "Duration", workbook, headerRow);
+		addHeaderCell(statusPosition, "Status", workbook, headerRow);
+		addHeaderCell(detailPosition, "Detail", workbook, headerRow);
 
 		int rownum = 1;
 		for (LogEntry entry : logging.getLogs()) {
 			Row row = sheet.createRow(rownum++);
 
 			if (entry.getStartdAt() != null) {
-				Cell startedAtCell = row.createCell(0);
+				Cell startedAtCell = row.createCell(startedAtPosition);
 				startedAtCell.setCellValue(entry.getStartdAt().toString());
 			}
 			if (entry.getMessage() != null) {
-				Cell messageCell = row.createCell(1);
+				Cell messageCell = row.createCell(messagePosition);
 				messageCell.setCellValue(entry.getMessage());
 			}
 			if (entry.getEndedAt() != null) {
-				Cell endedAtCell = row.createCell(2);
+				Cell endedAtCell = row.createCell(endedAtPosition);
 				endedAtCell.setCellValue(entry.getEndedAt().toString());
 			}
 			if (entry.getDuration() != null) {
-				Cell endedAtCell = row.createCell(3);
+				Cell endedAtCell = row.createCell(durationPosition);
 				endedAtCell.setCellValue(entry.getDuration().toMillis());
 			}
 			if (entry.getStatus() != null) {
-				Cell statusCell = row.createCell(4);
+				Cell statusCell = row.createCell(statusPosition);
 				statusCell.setCellValue(entry.getStatus());
 			}
 			if (entry.getStatusDetail() != null) {
-				Cell statusDetailCell = row.createCell(5);
+				Cell statusDetailCell = row.createCell(detailPosition);
 				statusDetailCell.setCellValue(entry.getStatusDetail());
 			}
 		}
