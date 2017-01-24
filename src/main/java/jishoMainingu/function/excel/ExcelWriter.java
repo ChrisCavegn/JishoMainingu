@@ -85,9 +85,11 @@ public class ExcelWriter {
 		int englishDefinitionStart = partsOfSpeechStart + 1;
 		int multipleKanji = englishDefinitionStart + 3;
 		int multipleReading = multipleKanji + 1;
+		int place = multipleReading + 1;
+		int summe = place + 1;
 
 		ExcelSpecification excelSpecification = new ExcelSpecification(kanjiStart, readingStart, partsOfSpeechStart,
-				englishDefinitionStart, multipleKanji, multipleReading);
+				englishDefinitionStart, multipleKanji, multipleReading, place, summe);
 		return excelSpecification;
 	}
 
@@ -120,7 +122,11 @@ public class ExcelWriter {
 
 		addHeaderCell(excel.getMultipleKanji(), "multiple_kanji", workbook, headerRow);
 
-		Cell lastCell = addHeaderCell(excel.getMultipleReading(), "multiple_reading", workbook, headerRow);
+		addHeaderCell(excel.getMultipleReading(), "multiple_reading", workbook, headerRow);
+
+		addHeaderCell(excel.getMultipleReading(), "isPlace", workbook, headerRow);
+
+		Cell lastCell = addHeaderCell(excel.getMultipleReading(), "summe", workbook, headerRow);
 		sheet.setAutoFilter(CellRangeAddress.valueOf("A1:" + lastCell.getAddress()));
 	}
 
@@ -202,12 +208,25 @@ public class ExcelWriter {
 			}
 
 			// Multiple Kanji
+			int multipleKanjiValue = kanjiIndex - excel.getKanjiStart() > 1 ? 1 : 0;
 			Cell multipleKanjiCell = row.createCell(excel.getMultipleKanji());
-			multipleKanjiCell.setCellValue(kanjiIndex - excel.getKanjiStart() > 1 ? 1 : 0);
+			multipleKanjiCell.setCellValue(multipleKanjiValue);
 
-			// Multiple Kanji
+			// Multiple Reading
+			int differentReadingsValue = entry.isDifferentReadings() ? 1 : 0;
 			Cell multipleReadingCell = row.createCell(excel.getMultipleReading());
-			multipleReadingCell.setCellValue(entry.isDifferentReadings() ? 1 : 0);
+			multipleReadingCell.setCellValue(differentReadingsValue);
+
+			// Multiple Reading
+			int placeValue = entry.isPlace() ? 1 : 0;
+			Cell placeCell = row.createCell(excel.getPlace());
+			placeCell.setCellValue(placeValue);
+
+			// Summe
+			int summe = multipleKanjiValue + differentReadingsValue + placeValue;
+			Cell summeCell = row.createCell(excel.getSumme());
+			summeCell.setCellValue(summe);
+
 		}
 
 		// Auto-Resize aller Spalten.
@@ -296,6 +315,5 @@ public class ExcelWriter {
 		for (int i = 0; i <= 5; i++) {
 			sheet.autoSizeColumn(i);
 		}
-
 	}
 }

@@ -10,4 +10,6 @@ public class ExcelSpecification {
 	private int englishDefinitionStart;
 	private int multipleKanji;
 	private int multipleReading;
+	private int place;
+	private int summe;
 }

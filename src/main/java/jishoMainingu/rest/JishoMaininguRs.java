@@ -102,7 +102,7 @@ public class JishoMaininguRs {
 
 		contentFilter.filter(data, filterEvilSources, logging);
 
-		List<ExcelEntry> excelData = modelConverter.convert(data);
+		List<ExcelEntry> excelData = modelConverter.convert(data, logging);
 
 		try {
 			ByteArrayOutputStream outputStream = excelWriter.createWorkbook(keyword, excelData, specification, logging);

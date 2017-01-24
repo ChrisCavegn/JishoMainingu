@@ -8,6 +8,7 @@ import lombok.Data;
 @Data
 public class ExcelEntry {
 	private boolean differentReadings;
+	private boolean place;
 
 	private List<String> kanjis = new ArrayList<>();
 	private List<String> readings = new ArrayList<>();
