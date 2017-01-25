@@ -10,7 +10,7 @@
 
 	<groupId>jishoMainingu</groupId>
 	<artifactId>jishoMainingu</artifactId>
-	<version>2017.01.22</version>
+	<version>2017.01.25</version>
 
 	<properties>
 		<java.version>1.8</java.version>
