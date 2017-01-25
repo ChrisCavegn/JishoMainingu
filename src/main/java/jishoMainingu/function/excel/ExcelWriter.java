@@ -4,10 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.apache.poi.hssf.usermodel.HSSFCellStyle;
-import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
@@ -22,6 +21,9 @@ import jishoMainingu.function.specification.DataSpecification;
 
 @Named
 public class ExcelWriter {
+
+	@Inject
+	private ExcelUtil excelUtil;
 
 	/**
 	 * Erzeugt aus den übergebenen Daten ein Excel-File.
@@ -105,28 +107,26 @@ public class ExcelWriter {
 		Row headerRow = sheet.createRow(rowNum);
 
 		for (int i = excel.getKanjiStart(); i < excel.getReadingStart(); i++) {
-			addHeaderCell(i, "Kanji " + i, workbook, headerRow);
+			excelUtil.addHeaderCell(i, "Kanji " + i, workbook, headerRow);
 		}
 
 		for (int i = excel.getReadingStart(); i < excel.getEnglishDefinitionStart(); i++) {
 			int readingIndex = i - excel.getReadingStart();
-			addHeaderCell(i, "Reading " + readingIndex, workbook, headerRow);
+			excelUtil.addHeaderCell(i, "Reading " + readingIndex, workbook, headerRow);
 		}
 
-		addHeaderCell(excel.getPartsOfSpeech(), "Parts of speech", workbook, headerRow);
+		excelUtil.addHeaderCell(excel.getPartsOfSpeech(), "Parts of speech", workbook, headerRow);
 
 		for (int i = excel.getEnglishDefinitionStart(); i < excel.getMultipleKanji(); i++) {
 			int englishDefinitionIndex = i - excel.getEnglishDefinitionStart();
-			addHeaderCell(i, "English Definition " + englishDefinitionIndex, workbook, headerRow);
+			excelUtil.addHeaderCell(i, "English Definition " + englishDefinitionIndex, workbook, headerRow);
 		}
 
-		addHeaderCell(excel.getMultipleKanji(), "multiple_kanji", workbook, headerRow);
+		excelUtil.addHeaderCell(excel.getMultipleKanji(), "multiple_kanji", workbook, headerRow);
+		excelUtil.addHeaderCell(excel.getMultipleReading(), "multiple_reading", workbook, headerRow);
+		excelUtil.addHeaderCell(excel.getMultipleReading(), "isPlace", workbook, headerRow);
 
-		addHeaderCell(excel.getMultipleReading(), "multiple_reading", workbook, headerRow);
-
-		addHeaderCell(excel.getMultipleReading(), "isPlace", workbook, headerRow);
-
-		Cell lastCell = addHeaderCell(excel.getMultipleReading(), "summe", workbook, headerRow);
+		Cell lastCell = excelUtil.addHeaderCell(excel.getMultipleReading(), "summe", workbook, headerRow);
 		sheet.setAutoFilter(CellRangeAddress.valueOf("A1:" + lastCell.getAddress()));
 	}
 
@@ -145,8 +145,7 @@ public class ExcelWriter {
 			// Add Kanji's
 			int kanjiIndex = excel.getKanjiStart();
 			for (String kanji : entry.getKanjis()) {
-				Cell kanjiCell = row.createCell(kanjiIndex);
-				kanjiCell.setCellValue(kanji);
+				excelUtil.addContentCell(row, kanjiIndex, kanji);
 
 				kanjiIndex++;
 			}
@@ -154,23 +153,20 @@ public class ExcelWriter {
 			// Add Readings
 			int readingIndex = excel.getReadingStart();
 			for (String reading : entry.getReadings()) {
-				Cell readingCell = row.createCell(readingIndex);
-				readingCell.setCellValue(reading);
+				excelUtil.addContentCell(row, readingIndex, reading);
 
 				readingIndex++;
 			}
 
 			// Add Parts of Speech
 			String partsOfSpeech = StringUtils.collectionToDelimitedString(entry.getPartsOfSpeech(), ", ");
-			Cell speechCell = row.createCell(excel.getPartsOfSpeech());
-			speechCell.setCellValue(partsOfSpeech);
+			excelUtil.addContentCell(row, excel.getPartsOfSpeech(), partsOfSpeech);
 
 			// Add Englisch Definitions
 			if (entry.getEnglishDefinitions().size() > 0) {
 				List<String> englishDefinitions = entry.getEnglishDefinitions().get(0);
 
-				Cell firstEnglishWordCell = row.createCell(excel.getEnglishDefinitionStart() + 0);
-				firstEnglishWordCell.setCellValue(englishDefinitions.get(0));
+				excelUtil.addContentCell(row, excel.getEnglishDefinitionStart() + 0, englishDefinitions.get(0));
 
 				/*
 				 * Falls das erste Sense-Objekt mehr als English-Definition
@@ -184,8 +180,8 @@ public class ExcelWriter {
 
 					String englishWordList = StringUtils.collectionToDelimitedString(englishDefinitionsWithoutFirst,
 							", ");
-					Cell secondEnglishWordCell = row.createCell(excel.getEnglishDefinitionStart() + 1);
-					secondEnglishWordCell.setCellValue(englishWordList);
+
+					excelUtil.addContentCell(row, excel.getEnglishDefinitionStart() + 1, englishWordList);
 				}
 
 			}
@@ -203,59 +199,30 @@ public class ExcelWriter {
 					allEnglishDefinitions.add(englishDefinition);
 				}
 				String englishWordList = StringUtils.collectionToDelimitedString(allEnglishDefinitions, "; ");
-				Cell thirdEnglishWordCell = row.createCell(excel.getEnglishDefinitionStart() + 2);
-				thirdEnglishWordCell.setCellValue(englishWordList);
+				excelUtil.addContentCell(row, excel.getEnglishDefinitionStart() + 2, englishWordList);
 			}
 
 			// Multiple Kanji
 			int multipleKanjiValue = kanjiIndex - excel.getKanjiStart() > 1 ? 1 : 0;
-			Cell multipleKanjiCell = row.createCell(excel.getMultipleKanji());
-			multipleKanjiCell.setCellValue(multipleKanjiValue);
+			excelUtil.addContentCell(row, excel.getMultipleKanji(), multipleKanjiValue);
 
 			// Multiple Reading
 			int differentReadingsValue = entry.isDifferentReadings() ? 1 : 0;
-			Cell multipleReadingCell = row.createCell(excel.getMultipleReading());
-			multipleReadingCell.setCellValue(differentReadingsValue);
+			excelUtil.addContentCell(row, excel.getMultipleReading(), differentReadingsValue);
 
-			// Multiple Reading
+			// Place
 			int placeValue = entry.isPlace() ? 1 : 0;
-			Cell placeCell = row.createCell(excel.getPlace());
-			placeCell.setCellValue(placeValue);
+			excelUtil.addContentCell(row, excel.getPlace(), placeValue);
 
 			// Summe
 			int summe = multipleKanjiValue + differentReadingsValue + placeValue;
-			Cell summeCell = row.createCell(excel.getSumme());
-			summeCell.setCellValue(summe);
-
+			excelUtil.addContentCell(row, excel.getSumme(), summe);
 		}
 
 		// Auto-Resize aller Spalten.
 		for (int i = 0; i <= excel.getMultipleKanji(); i++) {
 			sheet.autoSizeColumn(i);
 		}
-	}
-
-	/**
-	 * Fügt der Header-Zeile eine einzelne Zelle hinzu.
-	 * 
-	 * @param index Position, an der die Zelle hinzugefügt werden soll
-	 * @param title Inhalt der Zelle
-	 * @param workbook Das Workbook, wird zum Erzeugen von Schriftart und Zelle benötigt
-	 * @param headerRow Die Header-Zeile
-	 * @return Die erzeugte Zelle
-	 */
-	private Cell addHeaderCell(int index, String title, HSSFWorkbook workbook, Row headerRow) {
-		HSSFFont headerFont = workbook.createFont();
-		headerFont.setBold(true);
-
-		HSSFCellStyle style = workbook.createCellStyle();
-		style.setFont(headerFont);
-
-		Cell wordCell = headerRow.createCell(index);
-		wordCell.setCellValue(title);
-		wordCell.setCellStyle(style);
-
-		return wordCell;
 	}
 
 	/**
@@ -275,41 +242,23 @@ public class ExcelWriter {
 		int detailPosition = statusPosition + 1;
 
 		Row headerRow = sheet.createRow(0);
-		addHeaderCell(startedAtPosition, "StartedAt", workbook, headerRow);
-		addHeaderCell(messagePosition, "Message", workbook, headerRow);
-		addHeaderCell(endedAtPosition, "EndedAt", workbook, headerRow);
-		addHeaderCell(durationPosition, "Duration", workbook, headerRow);
-		addHeaderCell(statusPosition, "Status", workbook, headerRow);
-		addHeaderCell(detailPosition, "Detail", workbook, headerRow);
+		excelUtil.addHeaderCell(startedAtPosition, "StartedAt", workbook, headerRow);
+		excelUtil.addHeaderCell(messagePosition, "Message", workbook, headerRow);
+		excelUtil.addHeaderCell(endedAtPosition, "EndedAt", workbook, headerRow);
+		excelUtil.addHeaderCell(durationPosition, "Duration", workbook, headerRow);
+		excelUtil.addHeaderCell(statusPosition, "Status", workbook, headerRow);
+		excelUtil.addHeaderCell(detailPosition, "Detail", workbook, headerRow);
 
 		int rownum = 1;
 		for (LogEntry entry : logging.getLogs()) {
 			Row row = sheet.createRow(rownum++);
 
-			if (entry.getStartdAt() != null) {
-				Cell startedAtCell = row.createCell(startedAtPosition);
-				startedAtCell.setCellValue(entry.getStartdAt().toString());
-			}
-			if (entry.getMessage() != null) {
-				Cell messageCell = row.createCell(messagePosition);
-				messageCell.setCellValue(entry.getMessage());
-			}
-			if (entry.getEndedAt() != null) {
-				Cell endedAtCell = row.createCell(endedAtPosition);
-				endedAtCell.setCellValue(entry.getEndedAt().toString());
-			}
-			if (entry.getDuration() != null) {
-				Cell endedAtCell = row.createCell(durationPosition);
-				endedAtCell.setCellValue(entry.getDuration().toMillis());
-			}
-			if (entry.getStatus() != null) {
-				Cell statusCell = row.createCell(statusPosition);
-				statusCell.setCellValue(entry.getStatus());
-			}
-			if (entry.getStatusDetail() != null) {
-				Cell statusDetailCell = row.createCell(detailPosition);
-				statusDetailCell.setCellValue(entry.getStatusDetail());
-			}
+			excelUtil.addContentCell(row, startedAtPosition, entry.getStartdAt());
+			excelUtil.addContentCell(row, messagePosition, entry.getMessage());
+			excelUtil.addContentCell(row, endedAtPosition, entry.getEndedAt());
+			excelUtil.addContentCell(row, durationPosition, entry.getDuration());
+			excelUtil.addContentCell(row, statusPosition, entry.getStatus());
+			excelUtil.addContentCell(row, detailPosition, entry.getStatusDetail());
 		}
 
 		for (int i = 0; i <= 5; i++) {
