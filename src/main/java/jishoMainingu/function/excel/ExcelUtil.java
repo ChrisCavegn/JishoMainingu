@@ -12,6 +12,11 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.springframework.util.StringUtils;
 
+/**
+ * Stellt allgemeine Funktionalität für das Befüllen eines Excel's bereit.
+ * 
+ * @author ChrisCavegn
+ */
 @Named
 public class ExcelUtil {
 

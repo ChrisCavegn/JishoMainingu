@@ -5,7 +5,7 @@ import lombok.Value;
 /**
  * Spezifiziert die abgefragten Daten.
  * 
- * @author Chris
+ * @author ChrisCavegn
  */
 @Value
 public class DataSpecification {

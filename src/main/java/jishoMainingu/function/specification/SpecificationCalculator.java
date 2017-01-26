@@ -16,7 +16,7 @@ import jishoMainingu.function.logging.Logging;
  * - Maximale Anzahl JapaneseDto Objekte in den DataDto's - Maximale Anzahl
  * SenseDto Objekte in den DataDto's
  * 
- * @author Chris
+ * @author ChrisCavegn
  *
  */
 @Named

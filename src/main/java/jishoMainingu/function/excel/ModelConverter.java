@@ -1,6 +1,5 @@
 package jishoMainingu.function.excel;
 
-import java.io.FilterInputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -26,8 +25,7 @@ public class ModelConverter {
 	/**
 	 * @param someData Die Daten in Jisho-Darstellung
 	 * @param logging Das Logging-Objekt
-	 * @return Die Daten so aufbereitet, dass sie einfacher in's Excel
-	 *         übernommen werden können
+	 * @return Die Daten so aufbereitet, dass sie einfacher in's Excel übernommen werden können
 	 */
 	public List<ExcelEntry> convert(List<DataDto> someData, Logging logging) {
 		List<ExcelEntry> converted = convertData(someData);
@@ -36,8 +34,8 @@ public class ModelConverter {
 	}
 
 	/**
-	 * Pro Entry: Falls kein Kanji vorhanden ist aber mindestens ein Reading ->
-	 * Erstes Reading in die Liste der Kanji übernehmen
+	 * Pro Entry: Falls kein Kanji vorhanden ist aber mindestens ein Reading 
+	 * -> Erstes Reading in die Liste der Kanji übernehmen
 	 * 
 	 * @param allEntries Die Entries
 	 * @param logging Das Logging-Objekt

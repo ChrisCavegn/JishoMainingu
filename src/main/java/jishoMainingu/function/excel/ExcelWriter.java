@@ -19,6 +19,12 @@ import jishoMainingu.function.logging.LogEntry;
 import jishoMainingu.function.logging.Logging;
 import jishoMainingu.function.specification.DataSpecification;
 
+/**
+ * Erzeugt aus den übergebenen Daten ein Excel-File mit je einem Sheet für die Daten
+ * und das Logging der Aktionen.
+ * 
+ * @author ChrisCavegn
+ */
 @Named
 public class ExcelWriter {
 
@@ -178,10 +184,10 @@ public class ExcelWriter {
 					List<String> englishDefinitionsWithoutFirst = new ArrayList<>(englishDefinitions);
 					englishDefinitionsWithoutFirst.remove(0);
 
-					String englishWordList = StringUtils.collectionToDelimitedString(englishDefinitionsWithoutFirst,
+					String englishDefinition = StringUtils.collectionToDelimitedString(englishDefinitionsWithoutFirst,
 							", ");
 
-					excelUtil.addContentCell(row, excel.getEnglishDefinitionStart() + 1, englishWordList);
+					excelUtil.addContentCell(row, excel.getEnglishDefinitionStart() + 1, englishDefinition);
 				}
 
 			}

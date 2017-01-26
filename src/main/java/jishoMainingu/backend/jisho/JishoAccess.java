@@ -12,6 +12,11 @@ import jishoMainingu.backend.jisho.model.ResultDto;
 import jishoMainingu.function.logging.LogEntry;
 import jishoMainingu.function.logging.Logging;
 
+/**
+ * Klasse, welche den Zugriff auf den Jisho-REST-Service bereitstellt.
+ * 
+ * @author ChrisCavegn
+ */
 @Named
 public class JishoAccess {
 	/**
