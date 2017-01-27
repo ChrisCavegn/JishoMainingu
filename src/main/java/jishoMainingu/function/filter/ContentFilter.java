@@ -9,13 +9,18 @@ import jishoMainingu.backend.jisho.model.DataDto;
 import jishoMainingu.backend.jisho.model.SenseDto;
 import jishoMainingu.function.logging.Logging;
 
+/**
+ * Filtert unerwünschte Einträge aus den Daten.
+ * 
+ * @author ChrisCavegn
+ */
 @Named
 public class ContentFilter {
 
 	private static final String EVIL_SOURCE = "Wikipedia definition";
 
 	/**
-	 * Falls filter=true werden die übergebenen Daten gefiltert. Anderfalls
+	 * Falls filter=true werden die übergebenen Daten gefiltert. Andernfalls
 	 * werden die Daten nicht verändert.
 	 * 
 	 * @param allData Die Daten
