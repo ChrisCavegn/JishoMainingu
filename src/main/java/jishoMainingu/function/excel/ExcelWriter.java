@@ -89,15 +89,17 @@ public class ExcelWriter {
 	private ExcelSpecification getExcelSpecification(DataSpecification specification) {
 		int kanjiStart = 0;
 		int readingStart = kanjiStart + specification.getMaxKanjiCount();
-		int partsOfSpeechStart = readingStart + specification.getMaxReadingCount();
-		int englishDefinitionStart = partsOfSpeechStart + 1;
+		int partsOfSpeechStartModified = readingStart + specification.getMaxReadingCount();
+		int partsOfSpeechStartOriginal = partsOfSpeechStartModified + 1;
+		int englishDefinitionStart = partsOfSpeechStartOriginal + 1;
 		int multipleKanji = englishDefinitionStart + 3;
 		int multipleReading = multipleKanji + 1;
 		int place = multipleReading + 1;
 		int summe = place + 1;
 
-		ExcelSpecification excelSpecification = new ExcelSpecification(kanjiStart, readingStart, partsOfSpeechStart,
-				englishDefinitionStart, multipleKanji, multipleReading, place, summe);
+		ExcelSpecification excelSpecification = new ExcelSpecification(kanjiStart, readingStart,
+				partsOfSpeechStartModified, partsOfSpeechStartOriginal, englishDefinitionStart, multipleKanji,
+				multipleReading, place, summe);
 		return excelSpecification;
 	}
 
@@ -121,7 +123,8 @@ public class ExcelWriter {
 			excelUtil.addHeaderCell(i, "Reading " + readingIndex, workbook, headerRow);
 		}
 
-		excelUtil.addHeaderCell(excel.getPartsOfSpeech(), "Parts of speech", workbook, headerRow);
+		excelUtil.addHeaderCell(excel.getPartsOfSpeechModified(), "POS (Modified)", workbook, headerRow);
+		excelUtil.addHeaderCell(excel.getPartsOfSpeechOriginal(), "POS (Original)", workbook, headerRow);
 
 		for (int i = excel.getEnglishDefinitionStart(); i < excel.getMultipleKanji(); i++) {
 			int englishDefinitionIndex = i - excel.getEnglishDefinitionStart();
@@ -165,8 +168,12 @@ public class ExcelWriter {
 			}
 
 			// Add Parts of Speech
-			String partsOfSpeech = StringUtils.collectionToDelimitedString(entry.getPartsOfSpeech(), ", ");
-			excelUtil.addContentCell(row, excel.getPartsOfSpeech(), partsOfSpeech);
+			String partsOfSpeechModified = StringUtils.collectionToDelimitedString(entry.getPartsOfSpeechMapped(), ", ");
+			excelUtil.addContentCell(row, excel.getPartsOfSpeechModified(), partsOfSpeechModified);
+
+			String partsOfSpeechOriginal = StringUtils.collectionToDelimitedString(entry.getPartsOfSpeechOriginal(), ", ");
+			excelUtil.addContentCell(row, excel.getPartsOfSpeechOriginal(), partsOfSpeechOriginal);
+			
 
 			// Add Englisch Definitions
 			if (entry.getEnglishDefinitions().size() > 0) {

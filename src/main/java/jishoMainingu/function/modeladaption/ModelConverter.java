@@ -1,4 +1,4 @@
-package jishoMainingu.function.excel;
+package jishoMainingu.function.modeladaption;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -80,7 +80,7 @@ public class ModelConverter {
 
 			// Parts of Speach übernehmen
 			for (SenseDto sense : data.getSenses()) {
-				entry.getPartsOfSpeech().addAll(sense.getParts_of_speech());
+				entry.getPartsOfSpeechOriginal().addAll(sense.getParts_of_speech());
 			}
 
 			// English Definitions übernehmen
@@ -92,7 +92,7 @@ public class ModelConverter {
 			entry.setDifferentReadings(new HashSet<>(entry.getReadings()).size() > 1);
 
 			// Ermittle, ob 'Place' in PartsOfSpeach enthalten ist 
-			entry.setPlace(entry.getPartsOfSpeech().contains("Place"));
+			entry.setPlace(entry.getPartsOfSpeechOriginal().contains("Place"));
 			
 			entries.add(entry);
 		}

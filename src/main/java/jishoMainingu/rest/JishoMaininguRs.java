@@ -2,6 +2,7 @@ package jishoMainingu.rest;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.ws.rs.DefaultValue;
@@ -17,10 +18,11 @@ import org.springframework.stereotype.Component;
 import jishoMainingu.backend.jisho.JishoAccess;
 import jishoMainingu.backend.jisho.model.DataDto;
 import jishoMainingu.function.excel.ExcelWriter;
-import jishoMainingu.function.excel.ModelConverter;
 import jishoMainingu.function.excel.model.ExcelEntry;
 import jishoMainingu.function.filter.ContentFilter;
 import jishoMainingu.function.logging.Logging;
+import jishoMainingu.function.modeladaption.ModelConverter;
+import jishoMainingu.function.modeladaption.PartsOfSpeechTransformer;
 import jishoMainingu.function.specification.DataSpecification;
 import jishoMainingu.function.specification.SpecificationCalculator;
 
@@ -41,6 +43,9 @@ public class JishoMaininguRs {
 	private ModelConverter modelConverter;
 
 	@Inject
+	private PartsOfSpeechTransformer posTransformer;
+
+	@Inject
 	private ExcelWriter excelWriter;
 
 	@GET
@@ -50,6 +55,9 @@ public class JishoMaininguRs {
 		StringBuilder message = new StringBuilder();
 		message.append("<html>");
 		message.append("<body>");
+		message.append("Anzeige von POS-Mapping: <p/>");
+		message.append(getHref(baseUrl, "posMapping")).append("<p/>");
+		message.append("<p/>");
 		message.append("Anzeige von JSON: <p/>");
 		message.append(getHref(baseUrl, "json?keyword=jlpt-n3")).append("<p/>");
 		message.append(getHref(baseUrl, "json?keyword=jlpt-n3&maxPage=2")).append("<p/>");
@@ -71,9 +79,20 @@ public class JishoMaininguRs {
 	}
 
 	@GET
+	@Path("posMapping")
+	@Produces("application/json")
+	public Map<String, String> getAdverbMapping() {
+		Logging logging = new Logging();
+
+		posTransformer.initialize(logging);
+
+		return posTransformer.getMapping();
+	}
+
+	@GET
 	@Path("json")
 	@Produces("application/json")
-	public List<DataDto> raw(@QueryParam("keyword") String keyword,
+	public List<DataDto> json(@QueryParam("keyword") String keyword,
 			@QueryParam("filterEvilSources") @DefaultValue(value = "true") boolean filterEvilSources,
 			@QueryParam("maxPage") Integer maxPage) {
 		Logging logging = new Logging();
@@ -104,6 +123,9 @@ public class JishoMaininguRs {
 
 		List<ExcelEntry> excelData = modelConverter.convert(data, logging);
 
+		posTransformer.initialize(logging);
+		posTransformer.createModifiedPOS(excelData);
+		
 		try {
 			ByteArrayOutputStream outputStream = excelWriter.createWorkbook(keyword, excelData, specification, logging);
 
@@ -111,7 +133,7 @@ public class JishoMaininguRs {
 
 			return responseBuilder
 					.header("Content-Disposition", "inline; filename=jisho-translations-" + keyword + ".xls").build();
-		} 
+		}
 		catch (Exception e) {
 			e.printStackTrace();
 			return Response.serverError().build();
