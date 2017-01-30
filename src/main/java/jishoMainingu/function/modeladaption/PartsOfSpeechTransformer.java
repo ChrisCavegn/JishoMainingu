@@ -2,6 +2,7 @@ package jishoMainingu.function.modeladaption;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,7 +36,8 @@ public class PartsOfSpeechTransformer {
 		LogEntry log = logging
 				.createEntry(String.format("Öffne File mit dem POS Mapping (%s)", resource.getFilename()));
 
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
+		try (BufferedReader reader = new BufferedReader(
+				new InputStreamReader(resource.getInputStream(), Charset.forName("UTF-8")))) {
 			while (reader.ready()) {
 				String line = reader.readLine();
 				String[] tokens = line.split(";");
