@@ -11,14 +11,14 @@ Godan verb with gu ending;v5g
 Godan verb with ku ending;v5k
 Godan verb with mu ending;v5m
 Godan verb with ru ending;v5r
-Godan verb with ru ending (irregular verb);v5r
+Godan verb with ru ending (irregular verb);v5r-i
 Godan verb with su ending;v5s
 Godan verb with tsu ending;v5t
 Godan verb with u ending;v5u
 I-adjective;adj-i
-Ichidan verb;vi
+Ichidan verb;v1
 intransitive verb;vi
-Irregular ru verb;
+Irregular ru verb;v5r-i
 Na-adjective;adj-na
 No-adjective;adj-no
 Noun;n
@@ -28,7 +28,7 @@ Noun or verb acting prenominally;adj-f
 Numeric;num
 Particle;prt
 Place;p
-plain form ends with -ri;
+plain form ends with -ri;v-ri
 Prefix;pref
 Pre-noun adjectival;adj-pn
 Pronoun;pn
