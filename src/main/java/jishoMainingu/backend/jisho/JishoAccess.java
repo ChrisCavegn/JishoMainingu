@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.inject.Named;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestTemplate;
 
 import jishoMainingu.backend.jisho.model.DataDto;
@@ -19,6 +20,10 @@ import jishoMainingu.function.logging.Logging;
  */
 @Named
 public class JishoAccess {
+	
+	@Value("${jishoUrl}")
+	private String jishoUrl;
+	
 	/**
 	 * Sucht nach dem übergebenen Keyword und liefert die abgefragten Daten zurück. 
 	 * Die Methode geht solange die pages durch, bis keine Daten mehr zurückgeliefert werden.
@@ -37,7 +42,7 @@ public class JishoAccess {
 
 		boolean finished = false;
 		while (!finished) {
-			String uri = String.format("http://jisho.org/api/v1/search/words?keyword=%s&page=%d", keyword, page++);
+			String uri = String.format(jishoUrl, keyword, page++);
 
 			LogEntry logEntry = logging.createEntry(String.format("Abfrage von %s", uri));
 
